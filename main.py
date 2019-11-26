@@ -1,4 +1,5 @@
 import math
+import random
 import sys
 
 from nltk import word_tokenize
@@ -11,25 +12,29 @@ class CategoryInfo:
         self.word_prob_dictionary = word_prob_dictionary
 
 
-# write information regarding each incorrectly tagged sentence to output file
-def write_output(output_file, data):
+class Model:
+    def __init__(self, category_info_list, vocabulary):
+        self.category_info_list = category_info_list
+        self.vocabulary = vocabulary
+
+
+class OutputData:
+    def __init__(self, original_label, assigned_label, text):
+        self.original_label = original_label
+        self.assigned_label = assigned_label
+        self.text = text
+
+
+# write information regarding each sample to output file
+def write_output(output_file, output_data):
+    output_file = "output_" + output_file + ".csv"
+
     f = open(output_file, "w")
 
-    for each in data:
+    f.write("original label,classifier-assigned label,text" + "\n")
 
-        # output the sentence
-        f.write(each.sentence + "\n")
-
-        # output pos tag for each word in the sentence
-        for word_tag_tuple in each.pos_tags:
-            f.write(word_tag_tuple[0] + ' ' + word_tag_tuple[1] + "\n")
-
-        # output all the incorrectly tagged entities
-        for entity in each.incorrectly_tagged_entities:
-            f.write(entity + "\n")
-
-        # output two blank lines
-        f.write("\n\n")
+    for each in output_data:
+        f.write(each.original_label + "," + each.assigned_label + "," + each.text + "\n")
 
     f.close()
 
@@ -70,6 +75,7 @@ def preprocess_data(data):
 
 
 def fold_data(data):
+    random.shuffle(data)
     first_split_point = int(len(data) / 3)
 
     second_split_point = 2 * int(len(data) / 3)
@@ -122,16 +128,17 @@ def train(train_set, category_set):
 
         category_info = CategoryInfo(category, log_prior, word_prob_dictionary)
         category_info_list.append(category_info)
+        model = Model(category_info_list, vocabulary)
 
-    return category_info_list, vocabulary
+    return model
 
 
-def test(category_info_list, vocabulary, test_doc):
+def test(model, test_doc):
     max_val = - sys.maxsize - 1
 
     max_category = None
 
-    for x in category_info_list:
+    for x in model.category_info_list:
 
         sum_c = x.log_prior
 
@@ -139,7 +146,7 @@ def test(category_info_list, vocabulary, test_doc):
 
         for token in tokens:
 
-            if token in vocabulary:
+            if token in model.vocabulary:
                 sum_c += x.word_prob_dictionary[token]
 
         if sum_c > max_val:
@@ -162,34 +169,79 @@ def cross_validation(fold_list):
             if x != test_set:
                 train_set += x
 
-        category_list = []
-        for x in train_set:
-            category_list.append(x[0])
+        accuracy, model, output_data_list = train_test(train_set, test_set)
+        print("Train Accuracy: %s" % accuracy)
 
-        category_set = set(category_list)
 
-        category_info_list, vocabulary = train(train_set, category_set)
+def train_test(train_set, test_set):
+    category_list = []
+    for x in train_set:
+        category_list.append(x[0])
 
-        for x in test_set:
-            best_category = test(category_info_list, vocabulary, x[1])
-            print(x[0] + ' ' + best_category)
-        break
+    category_set = set(category_list)
+
+    model = train(train_set, category_set)
+
+    correct_category_count = 0
+    output_data_list = []
+    for x in test_set:
+        best_category = test(model, x[1])
+
+        output_data = OutputData(x[0], best_category, x[1])
+        output_data_list.append(output_data)
+
+        if x[0] == best_category:
+            correct_category_count += 1
+
+    accuracy = correct_category_count / len(test_set) * 100
+
+    return accuracy, model, output_data_list
+
+
+def eval(model, eval_set):
+    output_data_list = []
+    for x in eval_set:
+        best_category = test(model, x[1])
+        output_data = OutputData('', best_category, x[1])
+        output_data_list.append(output_data)
+
+    return output_data_list
 
 
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 4:
         print("Invalid number of arguments.")
         return
     else:
         train_file_path = sys.argv[1]
+        test_file_path = sys.argv[2]
+        eval_file_path = sys.argv[3]
 
     with open(train_file_path) as f:
-        content = f.read()
-        processed_sample_list = preprocess_data(content)
+        train_content = f.read()
+        processed_train_sample_list = preprocess_data(train_content)
 
-    fold_list = fold_data(processed_sample_list)
+    fold_list = fold_data(processed_train_sample_list)
 
+    # cross validate on train data
     cross_validation(fold_list)
+
+    # test on test data
+    with open(test_file_path) as f:
+        test_content = f.read()
+        processed_test_sample_list = preprocess_data(test_content)
+
+    test_accuracy, model, output_data_list = train_test(processed_train_sample_list, processed_test_sample_list)
+    print("Test Accuracy: %s" % test_accuracy)
+    write_output(get_file_name_excluding_extension(test_file_path), output_data_list)
+
+    # evaluate on eval data
+    with open(eval_file_path) as f:
+        eval_content = f.read()
+        processed_eval_sample_list = preprocess_data(eval_content)
+
+    output_data_list = eval(model, processed_eval_sample_list)
+    write_output(get_file_name_excluding_extension(eval_file_path), output_data_list)
 
 
 if __name__ == "__main__":
