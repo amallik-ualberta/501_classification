@@ -133,7 +133,7 @@ def train(train_set, category_set):
     return model
 
 
-def test(model, test_doc):
+def predict(model, test_doc):
     max_val = - sys.maxsize - 1
 
     max_category = None
@@ -169,11 +169,13 @@ def cross_validation(fold_list):
             if x != test_set:
                 train_set += x
 
-        accuracy, model, output_data_list = train_test(train_set, test_set)
+        model = get_trained_model(train_set)
+
+        accuracy, output_data_list = test(model, test_set)
         print("Train Accuracy: %s" % accuracy)
 
 
-def train_test(train_set, test_set):
+def get_trained_model(train_set):
     category_list = []
     for x in train_set:
         category_list.append(x[0])
@@ -181,11 +183,15 @@ def train_test(train_set, test_set):
     category_set = set(category_list)
 
     model = train(train_set, category_set)
+    return model
+
+
+def test(model, test_set):
 
     correct_category_count = 0
     output_data_list = []
     for x in test_set:
-        best_category = test(model, x[1])
+        best_category = predict(model, x[1])
 
         output_data = OutputData(x[0], best_category, x[1])
         output_data_list.append(output_data)
@@ -195,13 +201,13 @@ def train_test(train_set, test_set):
 
     accuracy = correct_category_count / len(test_set) * 100
 
-    return accuracy, model, output_data_list
+    return accuracy, output_data_list
 
 
 def eval(model, eval_set):
     output_data_list = []
     for x in eval_set:
-        best_category = test(model, x[1])
+        best_category = predict(model, x[1])
         output_data = OutputData('', best_category, x[1])
         output_data_list.append(output_data)
 
@@ -226,12 +232,15 @@ def main():
     # cross validate on train data
     cross_validation(fold_list)
 
+    # get model on whole train set
+    model = get_trained_model(processed_train_sample_list)
+
     # test on test data
     with open(test_file_path) as f:
         test_content = f.read()
         processed_test_sample_list = preprocess_data(test_content)
 
-    test_accuracy, model, output_data_list = train_test(processed_train_sample_list, processed_test_sample_list)
+    test_accuracy, output_data_list = test(model, processed_test_sample_list)
     print("Test Accuracy: %s" % test_accuracy)
     write_output(get_file_name_excluding_extension(test_file_path), output_data_list)
 
