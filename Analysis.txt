@@ -1,0 +1,75 @@
+### alpha smoothing ###
+alpha = 0 (no smoothing):
+math domain error (log0)
+
+alpha = 0.05:
+Accuracy 1: 97.54
+Accuracy 2: 97.71
+Accuracy 3: 96.48
+Average: 97.24
+
+alpha = 0.1:
+Accuracy 1: 97.89
+Accuracy 2: 97.89
+Accuracy 3: 96.48
+Average: 97.42
+
+alpha = 0.2:
+Accuracy 1: 97.89
+Accuracy 2: 97.89
+Accuracy 3: 96.13
+Average: 97.30
+
+alpha = 0.3:
+Accuracy 1: 97.89
+Accuracy 2: 97.54
+Accuracy 3: 95.60
+Average: 97.01
+
+alpha = 0.4:
+Accuracy 1: 98.06
+Accuracy 2: 97.36
+Accuracy 3: 95.60
+Average: 97.01
+
+alpha = 0.5:
+Accuracy 1: 98.06
+Accuracy 2: 97.18
+Accuracy 3: 95.60
+Average: 96.95
+
+alpha = 0.8:
+Accuracy 1: 97.89
+Accuracy 2: 97.18
+Accuracy 3: 95.77
+Average: 96.94
+
+alpha = 1:
+Accuracy 1: 97.36
+Accuracy 2: 96.83
+Accuracy 3: 95.77
+Average: 96.65
+
+alpha = 1.2:
+Accuracy 1: 97.01
+Accuracy 2: 96.30
+Accuracy 3: 95.60
+Average: 96.30
+
+alpha = 2:
+Accuracy 1: 95.25
+Accuracy 2: 95.07
+Accuracy 3: 95.42
+Average: 95.25
+
+
+
+With alpha = 0.1 setting:
+Test Accuracy: 97.90419161676647
+Confusion Matrix:
+ ['entertainment', 'politics', 'sport', 'tech', 'business']
+ [[114   0   0   1   2]
+ [  1 121   0   1   1]
+ [  0   1 161   0   1]
+ [  1   1   0 105   0]
+ [  0   3   0   1 153]]

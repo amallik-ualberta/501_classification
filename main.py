@@ -76,6 +76,7 @@ def preprocess_data(data):
 
 def train(train_set, category_set):
     model = None
+    alpha = 0.1
 
     word_list = []
     for x in train_set:
@@ -107,7 +108,7 @@ def train(train_set, category_set):
         for word in vocabulary:
             word_count = bigdoc.count(word)
 
-            log_likelihood = math.log2((word_count + 1) / (category_word_count + len(vocabulary)))
+            log_likelihood = math.log2((word_count + alpha) / (category_word_count + len(vocabulary) * alpha))
 
             word_prob_dictionary[word] = log_likelihood
 
@@ -170,30 +171,30 @@ def cross_validation(train_data):
     for i in range(0, len(fold_list)):
 
         train_set = []
-        test_set = []
+        dev_set = []
 
         print("######## Cross Validation %s ########" % (i + 1))
         print("Row Number 1 : Header")
         for index, fold_range in enumerate(fold_range_list):
             if index == i:
-                test_set = fold_list[index]
-                print("Row Number %s to %s : Test Set" % (fold_range[0] + 1, fold_range[1] + 1))
+                dev_set = fold_list[index]
+                print("Row Number %s to %s : Dev Set" % (fold_range[0] + 1, fold_range[1] + 1))
 
             else:
                 train_set += fold_list[index]
-                print("Row number %s to %s : Train Set" % (fold_range[0] + 1, fold_range[1] + 1))
+                print("Row Number %s to %s : Training Set" % (fold_range[0] + 1, fold_range[1] + 1))
 
         model = get_trained_model(train_set)
 
         correct_category_count = 0
 
-        for x in test_set:
+        for x in dev_set:
             best_category = classify(model, x[1])
 
             if x[0] == best_category:
                 correct_category_count += 1
 
-        accuracy = correct_category_count / len(test_set) * 100
+        accuracy = correct_category_count / len(dev_set) * 100
         print("Training Accuracy: %s\n" % accuracy)
 
         total_accuracy += accuracy
