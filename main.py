@@ -252,7 +252,8 @@ def evaluate(model, eval_set):
 
 def main():
     if len(sys.argv) < 4:
-        print("Invalid number of arguments.")
+        print("Invalid number of arguments. Use following command pattern:")
+        print("python3 main.py TRAIN_FILE_PATH TEST_FILE_PATH EVAL_FILE_PATH")
         return
     else:
         train_file_path = sys.argv[1]
