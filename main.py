@@ -1,8 +1,8 @@
 import math
-import random
 import sys
 
 from nltk import word_tokenize
+from sklearn.metrics import confusion_matrix
 
 
 class CategoryInfo:
@@ -74,24 +74,9 @@ def preprocess_data(data):
     return processed_sample_list
 
 
-def fold_data(data):
-    random.shuffle(data)
-    first_split_point = int(len(data) / 3)
-
-    second_split_point = 2 * int(len(data) / 3)
-
-    fold1 = data[:first_split_point]
-
-    fold2 = data[first_split_point:second_split_point]
-
-    fold3 = data[second_split_point:]
-
-    fold_list = [fold1, fold2, fold3]
-
-    return fold_list
-
-
 def train(train_set, category_set):
+    model = None
+
     word_list = []
     for x in train_set:
         tokens = word_tokenize(x[1])
@@ -128,12 +113,13 @@ def train(train_set, category_set):
 
         category_info = CategoryInfo(category, log_prior, word_prob_dictionary)
         category_info_list.append(category_info)
+
         model = Model(category_info_list, vocabulary)
 
     return model
 
 
-def predict(model, test_doc):
+def classify(model, test_doc):
     max_val = - sys.maxsize - 1
 
     max_category = None
@@ -157,22 +143,62 @@ def predict(model, test_doc):
     return max_category
 
 
-def cross_validation(fold_list):
-    for i in range(0, 3):
+def fold_data(data):
+    first_split_point = int(len(data) / 3)
 
-        test_set = fold_list[i]
+    second_split_point = 2 * int(len(data) / 3)
+
+    fold1 = data[:first_split_point]
+
+    fold2 = data[first_split_point:second_split_point]
+
+    fold3 = data[second_split_point:]
+
+    fold_list = [fold1, fold2, fold3]
+
+    fold_range_list = [(1, first_split_point),
+                       (first_split_point + 1, second_split_point),
+                       (second_split_point + 1, len(data))]
+
+    return fold_list, fold_range_list
+
+
+def cross_validation(train_data):
+    fold_list, fold_range_list = fold_data(train_data)
+
+    total_accuracy = 0
+    for i in range(0, len(fold_list)):
 
         train_set = []
+        test_set = []
 
-        for x in fold_list:
+        print("######## Cross Validation %s ########" % (i + 1))
+        print("Row Number 1 : Header")
+        for index, fold_range in enumerate(fold_range_list):
+            if index == i:
+                test_set = fold_list[index]
+                print("Row Number %s to %s : Test Set" % (fold_range[0] + 1, fold_range[1] + 1))
 
-            if x != test_set:
-                train_set += x
+            else:
+                train_set += fold_list[index]
+                print("Row number %s to %s : Train Set" % (fold_range[0] + 1, fold_range[1] + 1))
 
         model = get_trained_model(train_set)
 
-        accuracy, output_data_list = test(model, test_set)
-        print("Train Accuracy: %s" % accuracy)
+        correct_category_count = 0
+
+        for x in test_set:
+            best_category = classify(model, x[1])
+
+            if x[0] == best_category:
+                correct_category_count += 1
+
+        accuracy = correct_category_count / len(test_set) * 100
+        print("Training Accuracy: %s\n" % accuracy)
+
+        total_accuracy += accuracy
+
+    print("Average Training Accuracy: %s\n" % (total_accuracy / len(fold_list)))
 
 
 def get_trained_model(train_set):
@@ -187,27 +213,37 @@ def get_trained_model(train_set):
 
 
 def test(model, test_set):
-
+    true_category_list = []
+    predicted_category_list = []
     correct_category_count = 0
     output_data_list = []
+
     for x in test_set:
-        best_category = predict(model, x[1])
+        best_category = classify(model, x[1])
 
         output_data = OutputData(x[0], best_category, x[1])
         output_data_list.append(output_data)
+
+        true_category_list.append(x[0])
+        predicted_category_list.append(best_category)
 
         if x[0] == best_category:
             correct_category_count += 1
 
     accuracy = correct_category_count / len(test_set) * 100
+    print("Test Accuracy: %s" % accuracy)
 
-    return accuracy, output_data_list
+    category_set = set(true_category_list)
+    cm = confusion_matrix(true_category_list, predicted_category_list, list(category_set))
+    print("Confusion Matrix:\n %s \n %s" % (list(category_set), cm))
+
+    return output_data_list
 
 
-def eval(model, eval_set):
+def evaluate(model, eval_set):
     output_data_list = []
     for x in eval_set:
-        best_category = predict(model, x[1])
+        best_category = classify(model, x[1])
         output_data = OutputData('', best_category, x[1])
         output_data_list.append(output_data)
 
@@ -227,10 +263,8 @@ def main():
         train_content = f.read()
         processed_train_sample_list = preprocess_data(train_content)
 
-    fold_list = fold_data(processed_train_sample_list)
-
     # cross validate on train data
-    cross_validation(fold_list)
+    cross_validation(processed_train_sample_list)
 
     # get model on whole train set
     model = get_trained_model(processed_train_sample_list)
@@ -240,8 +274,7 @@ def main():
         test_content = f.read()
         processed_test_sample_list = preprocess_data(test_content)
 
-    test_accuracy, output_data_list = test(model, processed_test_sample_list)
-    print("Test Accuracy: %s" % test_accuracy)
+    output_data_list = test(model, processed_test_sample_list)
     write_output(get_file_name_excluding_extension(test_file_path), output_data_list)
 
     # evaluate on eval data
@@ -249,7 +282,7 @@ def main():
         eval_content = f.read()
         processed_eval_sample_list = preprocess_data(eval_content)
 
-    output_data_list = eval(model, processed_eval_sample_list)
+    output_data_list = evaluate(model, processed_eval_sample_list)
     write_output(get_file_name_excluding_extension(eval_file_path), output_data_list)
 
 
