@@ -3,6 +3,14 @@ Team Members:
     Arif Hasnat (CCID: hasnat)
 
 
+Special Instructions:
+    pip3 install sklearn
+
+    python3
+    >>> import nltk
+    >>> nltk.download('stopwords')
+
+
 Execution Instruction:
     run the following command in command line:
         python3 main.py TRAIN_FILE_PATH TEST_FILE_PATH EVAL_FILE_PATH
