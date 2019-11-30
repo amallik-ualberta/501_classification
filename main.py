@@ -4,6 +4,10 @@ import sys
 from nltk import word_tokenize
 from sklearn.metrics import confusion_matrix
 
+from nltk.corpus import stopwords
+
+nltk_stopwords = set(stopwords.words('english'))
+
 
 class CategoryInfo:
     def __init__(self, name, log_prior, word_prob_dictionary):
@@ -37,6 +41,15 @@ def write_output(output_file, output_data):
         f.write(each.original_label + "," + each.assigned_label + "," + each.text + "\n")
 
     f.close()
+
+
+def remove_stop_words(word_list):
+    filtered_word_list = []
+    for word in word_list:
+        if word not in nltk_stopwords:
+            filtered_word_list.append(word)
+
+    return filtered_word_list
 
 
 # get file name excluding extension
@@ -80,7 +93,9 @@ def train(train_set, category_set):
 
     word_list = []
     for x in train_set:
-        tokens = word_tokenize(x[1])
+        # tokens = word_tokenize(x[1])
+        tokens = x[1].split()
+        tokens = remove_stop_words(tokens)
         word_list += tokens
 
     vocabulary = set(word_list)
@@ -96,7 +111,9 @@ def train(train_set, category_set):
         for x in train_set:
 
             if x[0] == category:
-                tokens = word_tokenize(x[1])
+                # tokens = word_tokenize(x[1])
+                tokens = x[1].split()
+                tokens = remove_stop_words(tokens)
                 bigdoc += tokens
 
                 category_count += 1
@@ -129,7 +146,9 @@ def classify(model, test_doc):
 
         sum_c = x.log_prior
 
-        tokens = word_tokenize(test_doc)
+        # tokens = word_tokenize(test_doc)
+        tokens = test_doc.split()
+        tokens = remove_stop_words(tokens)
 
         for token in tokens:
 
@@ -213,24 +232,36 @@ def get_trained_model(train_set):
     return model
 
 
+# test the model on test data
 def test(model, test_set):
     true_category_list = []
     predicted_category_list = []
     correct_category_count = 0
     output_data_list = []
 
+    # classify test samples one by one
     for x in test_set:
+
+        # classify the sample
         best_category = classify(model, x[1])
 
+        # store output data to OutputData class
         output_data = OutputData(x[0], best_category, x[1])
+
+        # append output data to the output data list
         output_data_list.append(output_data)
 
+        # append to a list of true categories
         true_category_list.append(x[0])
+
+        # append to a list of predicted categories
         predicted_category_list.append(best_category)
 
+        # to count the instances where predicted category and true category are same
         if x[0] == best_category:
             correct_category_count += 1
 
+    # calculate and print accuracy
     accuracy = correct_category_count / len(test_set) * 100
     print("Test Accuracy: %s" % accuracy)
 
@@ -241,17 +272,27 @@ def test(model, test_set):
     return output_data_list
 
 
+# evaluate model on evaluation data
 def evaluate(model, eval_set):
+    # contains output data for all the evaluation samples
     output_data_list = []
+
+    # classify samples one by one
     for x in eval_set:
+        # classify the sample
         best_category = classify(model, x[1])
+
+        # store output data in OuputData class
         output_data = OutputData('', best_category, x[1])
+
+        # append output data to output data list
         output_data_list.append(output_data)
 
     return output_data_list
 
 
 def main():
+    # parse command line arguments (expecting: python3 main.py TRAIN_FILE_PATH TEST_FILE_PATH EVAL_FILE_PATH)
     if len(sys.argv) < 4:
         print("Invalid number of arguments. Use following command pattern:")
         print("python3 main.py TRAIN_FILE_PATH TEST_FILE_PATH EVAL_FILE_PATH")
@@ -261,30 +302,43 @@ def main():
         test_file_path = sys.argv[2]
         eval_file_path = sys.argv[3]
 
+    # read and preprocess training file
     with open(train_file_path) as f:
         train_content = f.read()
+
+        # preprocess training data
         processed_train_sample_list = preprocess_data(train_content)
 
-    # cross validate on train data
-    cross_validation(processed_train_sample_list)
+    # cross validate on training data
+    # cross_validation(processed_train_sample_list)
 
-    # get model on whole train set
+    # train model on whole training data
     model = get_trained_model(processed_train_sample_list)
 
-    # test on test data
+    # read and preprocess test file
     with open(test_file_path) as f:
         test_content = f.read()
+
+        # preprocess test data
         processed_test_sample_list = preprocess_data(test_content)
 
+    # test the model on test data
     output_data_list = test(model, processed_test_sample_list)
+
+    # write test output to output file
     write_output(get_file_name_excluding_extension(test_file_path), output_data_list)
 
-    # evaluate on eval data
+    # read and proprocess evaluation file
     with open(eval_file_path) as f:
         eval_content = f.read()
+
+        # preprocess evaluation data
         processed_eval_sample_list = preprocess_data(eval_content)
 
+    # evaluate the model on eval data
     output_data_list = evaluate(model, processed_eval_sample_list)
+
+    # write evaluation output to output file
     write_output(get_file_name_excluding_extension(eval_file_path), output_data_list)
 
 

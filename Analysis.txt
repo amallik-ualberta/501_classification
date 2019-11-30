@@ -1,4 +1,4 @@
-### alpha smoothing ###
+### alpha smoothing + nltk ###
 alpha = 0 (no smoothing):
 math domain error (log0)
 
@@ -73,3 +73,82 @@ Confusion Matrix:
  [  0   1 161   0   1]
  [  1   1   0 105   0]
  [  0   3   0   1 153]]
+
+
+### stop words removal + nltk ###
+alpha = 0.1
+Accuracy: 97.34
+Accuracy: 97.54
+Accuracy: 97.01
+Average: 97.30
+
+### stop words removal + nltk ###
+alpha = 1
+Accuracy: 97.54
+Accuracy: 97.01
+Accuracy: 97.83
+Average: 97.12
+
+### stop words removal + nltk ###
+alpha = 0.5
+Accuracy: 97.54
+Accuracy: 97.01
+Accuracy: 96.65
+Average: 97.24
+
+
+### stop words removal + space split ###
+alpha = 0.5
+Accuracy: 97.18
+Accuracy: 97.54
+Accuracy: 97.18
+Average: 97.30
+
+### stop words removal + space split ###
+alpha = 1
+Accuracy: 97.01
+Accuracy: 97.01
+Accuracy: 96.83
+Average: 96.95
+
+### stop words removal + space split ###
+alpha = 0.1
+Accuracy: 97.36
+Accuracy: 97.89
+Accuracy: 97.18
+Average: 97.48
+
+
+
+### stop words not removal + space split ###
+alpha = 0.5
+Accuracy: 97.71
+Accuracy: 97.18
+Accuracy: 95.60
+Average: 96.83
+
+### stop words not removal + space split ###
+alpha = 1
+Accuracy: 96.65
+Accuracy: 95.60
+Accuracy: 95.60
+Average: 95.95
+
+### stop words not removal + space split ###
+alpha = 0.1
+Accuracy: 97.89
+Accuracy: 97.89
+Accuracy: 96.30
+Average: 97.36
+
+
+
+## alpha 0.1, space split, stop words removal ##
+Test Accuracy: 98.05389221556887
+Confusion Matrix:
+ ['sport', 'entertainment', 'tech', 'business', 'politics']
+ [[161   0   0   1   1]
+ [  0 113   1   2   1]
+ [  0   2 105   0   0]
+ [  0   0   0 155   2]
+ [  0   1   1   1 121]]
