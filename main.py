@@ -358,6 +358,7 @@ def test(model, test_set):
     category_set = set(true_category_list)
 
     # generate and print confusion matrix
+    # The order of categories in confusion matrix can change because set is unordered.
     cm = confusion_matrix(true_category_list, predicted_category_list, list(category_set))
     print("Confusion Matrix:\n %s \n %s" % (list(category_set), cm))
 
